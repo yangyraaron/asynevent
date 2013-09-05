@@ -35,7 +35,7 @@ static void freeEventState(eventLoop *eventLoop){
 	free(eventLoop->state);
 }
 
-static int canResize(eventLoop* eventLoop,int setsize){
+static int Resize(eventLoop* eventLoop,int setsize){
 	if(setsize>FD_SETSIZE) return -1;
 	return 0;
 }

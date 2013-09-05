@@ -6,14 +6,15 @@
  */
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <fcntl.h>
 #include <signal.h>
+#include <netdb.h>
 
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "eventloop.h"
+#include "cnet.h"
 
 eventLoop *ep;
 int listener;
@@ -28,14 +29,8 @@ static void on_server_close(){
 	close(listener);
 }
 
-static void make_non_blocking(int fd){
-	fcntl(fd,F_SETFL,O_NONBLOCK);
-}
-
 void readFromClient(eventLoop *loop,int fd,void *data,int mask){
 	char buf[1024];
-	//int i;
-	//ssize_t result;
 
 	read(fd,buf,sizeof(buf));
 
@@ -65,35 +60,23 @@ void acceptClient(eventLoop *loop,int fd,void *data,int mask){
 		return;
 	}
 
-	make_non_blocking(clifd);
+	netMakeNonBlock(clifd);
 	createEventEntry(ep,clifd,EVENT_READABLE,readFromClient,NULL);
 }
 
 int server_run(){
 	ep = createEventLoop(1024);
 
-	struct sockaddr_in sin;
-
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = 0;
-	sin.sin_port = htons(40713);
-
-	listener = socket(AF_INET,SOCK_STREAM,0);
-	make_non_blocking(listener);
-
-	if(bind(listener,(struct sockaddr *)&sin,sizeof(sin))<0){
-		perror("bind server");
-		return 1;
-	}
-	if(listen(listener,16)){
-		perror("server listening");
-		return 1;
-	}
+	listener = netTcpServer("127.0.0.1",40713);
 
 	struct sigaction sa;
 	memset(&sa,0,sizeof(sa));
 	sa.sa_handler = on_server_close;
-	sigaction(SIGTERM,&sa,NULL);
+	if(sigaction(SIGTERM,&sa,NULL)==-1){
+		perror("sigaction");
+
+		return -1;
+	}
 
 	createEventEntry(ep,listener,EVENT_READABLE,acceptClient,NULL);
 

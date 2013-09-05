@@ -8,8 +8,14 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "config.h"
 #include "eventloop.h"
+
+#ifdef HAVE_EPOLL
+#include "epollevent.c"
+#else
 #include "selectevent.c"
+#endif
 
 eventLoop *createEventLoop(int setsize){
 	eventLoop *loop = malloc(sizeof(*loop));
@@ -46,7 +52,7 @@ eventLoop *createEventLoop(int setsize){
 int resizeEventLoop(eventLoop *eventLoop,int setsize){
 	if(eventLoop->setsize == setsize) return EVENT_OK;
 	if(eventLoop->maxfd>setsize) return EVENT_ERR;
-	if(canResize(eventLoop,setsize)==-1) return EVENT_ERR;
+	if(Resize(eventLoop,setsize)==-1) return EVENT_ERR;
 
 	eventLoop->events = realloc(eventLoop->events,sizeof(eventEntry)*setsize);
 	eventLoop->fired = realloc(eventLoop->events,sizeof(firedEventEntry)*setsize);
@@ -61,6 +67,8 @@ int resizeEventLoop(eventLoop *eventLoop,int setsize){
 
 void delEventLoop(eventLoop *eventLoop){
 	if(eventLoop == NULL) return;
+
+	freeEventState(eventLoop);
 
 	free(eventLoop->events);
 	free(eventLoop->fired);
