@@ -13,5 +13,7 @@
 
 int netTcpServer(char *host,int port);
 int netMakeNonBlock(int fd);
+int netRead(int fd,char *buf,int count);
+int netWrite(int fd,char *buf,int count);
 
 #endif /* CNET_H_ */

@@ -3,7 +3,7 @@
 require 'socket'
 
 include Socket::Constants
-host='localhost'
+host='192.172.1.24'
 port = 40713;
 
 begin

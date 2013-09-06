@@ -124,3 +124,31 @@ int netMakeNonBlock(int fd){
 
 	return NET_OK;
 }
+
+int netRead(int fd,char *buf,int count){
+	int nread,total=0;
+	while(total!=count){
+		nread = read(fd,buf+total,count-total);
+
+		if(nread==0) return total;
+		if(nread==-1) return total;
+
+		total+=nread;
+	}
+
+	return total;
+}
+
+int netWrite(int fd,char *buf,int count){
+	int nwritten,total=0;
+	while(total!=count){
+		nwritten = write(fd,buf+total,count-total);
+
+		if(nwritten==0) return total;
+		if(nwritten==-1) return total;
+
+		total+=nwritten;
+	}
+
+	return total;
+}

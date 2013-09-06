@@ -17,7 +17,7 @@
 #include "cnet.h"
 
 eventLoop *ep;
-int listener;
+int listener1,listener2;
 
 void readFromClient(eventLoop *,int ,void *,int );
 void replyToClient(eventLoop *,int ,void *,int );
@@ -25,23 +25,24 @@ void replyToClient(eventLoop *,int ,void *,int );
 static void on_server_close(){
 	printf("a  terminal signal is received \n");
 
-	delEventLoop(ep);
-	close(listener);
+	ep->stop = 1;
+	close(listener1);
+	close(listener2);
 }
 
 void readFromClient(eventLoop *loop,int fd,void *data,int mask){
 	char buf[1024];
 
-	read(fd,buf,sizeof(buf));
+	int total = netRead(fd,buf,sizeof(buf));
 
-	printf("received data : %s\n",buf);
+	printf("received data : \n %.*s\n",total,buf);
 
 	createEventEntry(ep,fd,EVENT_WRITABLE,replyToClient,NULL);
 }
 
 void replyToClient(eventLoop *loop,int fd,void *data,int mask){
 	char *buf = "ok";
-	write(fd,buf,strlen(buf));
+	netWrite(fd,buf,strlen(buf));
 
 	printf("replied \n");
 
@@ -51,6 +52,9 @@ void replyToClient(eventLoop *loop,int fd,void *data,int mask){
 }
 
 void acceptClient(eventLoop *loop,int fd,void *data,int mask){
+
+	printf("listener accetted;");
+
 	struct sockaddr_storage ss;
 	socklen_t slen = sizeof(ss);
 
@@ -67,7 +71,8 @@ void acceptClient(eventLoop *loop,int fd,void *data,int mask){
 int server_run(){
 	ep = createEventLoop(1024);
 
-	listener = netTcpServer("127.0.0.1",40713);
+	listener1 = netTcpServer("127.0.0.1",40713);
+	listener2 = netTcpServer("192.172.1.24",40713);
 
 	struct sigaction sa;
 	memset(&sa,0,sizeof(sa));
@@ -78,12 +83,13 @@ int server_run(){
 		return -1;
 	}
 
-	createEventEntry(ep,listener,EVENT_READABLE,acceptClient,NULL);
+	createEventEntry(ep,listener1,EVENT_READABLE,acceptClient,NULL);
+	createEventEntry(ep,listener2,EVENT_READABLE,acceptClient,NULL);
 
 	printf("server is running...\n");
 
 	runEventLoop(ep);
-
+	delEventLoop(ep);
 	return 0;
 
 }
